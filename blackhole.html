@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Black Hole Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #4fa3ff;
+            text-align: center;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4fa3ff;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4fa3ff;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            color: #fff;
+            font-size: 14px;
+            text-align: right;
+        }
+        
+        button {
+            padding: 8px 15px;
+            background: #2a6bc1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #4fa3ff;
+        }
+        
+        .info-panel {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .highlight {
+            color: #4fa3ff;
+            font-weight: bold;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        
+        .loader {
+            border: 5px solid #333;
+            border-top: 5px solid #4fa3ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .singularity-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 8px 15px;
+            background: #2a6bc1;
+            color: white;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background: #4fa3ff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+        <div>Loading Black Hole Simulation...</div>
+    </div>
+    
+    <div id="container"></div>
+    
+    <div class="singularity-info">
+        <h2>Singularity</h2>
+        <p>A point of infinite density where all the black hole's mass is concentrated. The laws of physics break down at this point.</p>
+    </div>
+    
+    <div id="ui-container">
+        <h1>Black Hole Simulation</h1>
+        
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('blackhole-tab')">Black Hole</button>
+            <button class="tab" onclick="switchTab('matter-tab')">Matter</button>
+            <button class="tab" onclick="switchTab('visual-tab')">Visual</button>
+        </div>
+        
+        <div id="blackhole-tab" class="tab-content active">
+            <div class="control-group">
+                <label for="massSlider">Black Hole Mass</label>
+                <input type="range" id="massSlider" min="5" max="100" value="30">
+                <div class="value-display" id="massValue">30 Solar Masses</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="spinSlider">Black Hole Spin</label>
+                <input type="range" id="spinSlider" min="0" max="100" value="50">
+                <div class="value-display" id="spinValue">0.5 c</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="accretionSlider">Accretion Disk Brightness</label>
+                <input type="range" id="accretionSlider" min="1" max="100" value="70">
+                <div class="value-display" id="accretionValue">70%</div>
+            </div>
+        </div>
+        
+        <div id="matter-tab" class="tab-content">
+            <div class="control-group">
+                <label for="matterSlider">Matter Density</label>
+                <input type="range" id="matterSlider" min="1" max="100" value="50">
+                <div class="value-display" id="matterValue">50%</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="velocitySlider">Initial Velocity</label>
+                <input type="range" id="velocitySlider" min="1" max="100" value="50">
+                <div class="value-display" id="velocityValue">50%</div>
+            </div>
+            
+            <div class="control-group">
+                <button id="addMatterBtn">Add Matter</button>
+                <button id="addRandomBtn">Add Random Matter</button>
+            </div>
+        </div>
+        
+        <div id="visual-tab" class="tab-content">
+            <div class="control-group">
+                <label for="trailSlider">Trail Length</label>
+                <input type="range" id="trailSlider" min="1" max="100" value="50">
+                <div class="value-display" id="trailValue">50%</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="qualitySlider">Render Quality</label>
+                <input type="range" id="qualitySlider" min="1" max="100" value="80">
+                <div class="value-display" id="qualityValue">80%</div>
+            </div>
+            
+            <div class="control-group">
+                <button id="resetBtn">Reset Simulation</button>
+                <button id="screenshotBtn">Take Screenshot</button>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-item">
+                <span>Schwarzschild Radius:</span>
+                <span class="info-value" id="schwarzschildRadius">17.7 km</span>
+            </div>
+            <div class="info-item">
+                <span>Matter Particles:</span>
+                <span class="info-value" id="matterParticles">0</span>
+            </div>
+            <div class="info-item">
+                <span>Matter Captured:</span>
+                <span class="info-value" id="matterCaptured">0</span>
+            </div>
+            <div class="info-item">
+                <span>Performance:</span>
+                <span class="info-value" id="performance">60 FPS</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="instructions">
+        <p>• <span class="highlight">Drag</span> to rotate the view</p>
+        <p>• <span class="highlight">Scroll</span> to zoom in/out</p>
+        <p>• <span class="highlight">Click</span> to add matter at cursor position</p>
+        <p>• Use tabs and controls to adjust simulation</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    
+    <script>
+        // UI Tab Functionality
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Show loading screen until everything is ready
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 1500);
+        });
+
+        // Constants
+        const G = 6.67430e-11;  // Gravitational constant
+        const c = 299792458.0;   // Speed of light
+        const c2 = c * c;        // c squared
+        const SOLAR_MASS = 1.989e30;
+        const METERS_PER_UNIT = 1e9; // 1 unit = 1,000,000 km
+
+        // Performance monitoring
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let fps = 60;
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Add stars background
+        const addStars = () => {
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            const starColors = [];
+            
+            for (let i = 0; i < 4000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starVertices.push(x, y, z);
+                
+                // Add some color variation to stars
+                const colorIntensity = 0.5 + Math.random() * 0.5;
+                starColors.push(colorIntensity, colorIntensity, colorIntensity);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+            
+            const starMaterial = new THREE.PointsMaterial({ 
+                color: 0xffffff, 
+                size: 1.2,
+                sizeAttenuation: true,
+                vertexColors: true
+            });
+            
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+            return stars;
+        };
+
+        const stars = addStars();
+
+        // Camera position
+        camera.position.z = 100;
+        camera.position.y = 50;
+
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 30;
+        controls.maxDistance = 500;
+
+        // Black hole class
+        class BlackHole {
+            constructor(mass, spin = 0.5) {
+                this.mass = mass;
+                this.spin = spin;
+                this.schwarzschildRadius = (2 * G * mass) / c2;
+                this.photonSphereRadius = 1.5 * this.schwarzschildRadius;
+                
+                // Create black hole components
+                this.singularity = this.createSingularity();
+                this.eventHorizon = this.createEventHorizon();
+                this.photonSphere = this.createPhotonSphere();
+                this.accretionDisk = this.createAccretionDisk();
+                this.corona = this.createCorona();
+                
+                // Add to scene
+                scene.add(this.singularity);
+                scene.add(this.eventHorizon);
+                scene.add(this.photonSphere);
+                scene.add(this.accretionDisk);
+                scene.add(this.corona);
+            }
+            
+            createSingularity() {
+                // Create a pulsing, glowing singularity
+                const geometry = new THREE.SphereGeometry(0.8, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const singularity = new THREE.Mesh(geometry, material);
+                
+                // Add a glowing effect
+                const glowGeometry = new THREE.SphereGeometry(1.2, 32, 32);
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x6600ff,
+                    transparent: true,
+                    opacity: 0.3,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                singularity.add(glow);
+                
+                return singularity;
+            }
+            
+            createEventHorizon() {
+                const radius = this.schwarzschildRadius / METERS_PER_UNIT;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                return mesh;
+            }
+            
+            createPhotonSphere() {
+                const radius = this.photonSphereRadius / METERS_PER_UNIT;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x4444ff,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.2
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                return mesh;
+            }
+            
+            createAccretionDisk() {
+                const innerRadius = this.photonSphereRadius / METERS_PER_UNIT;
+                const outerRadius = innerRadius * 5;
+                const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+                
+                // Create texture for accretion disk with Doppler effect
+                const canvas = document.createElement('canvas');
+                const width = 512;
+                const height = 64;
+                canvas.width = width;
+                canvas.height = height;
+                const context = canvas.getContext('2d');
+                
+                // Create gradient from blue to red
+                const gradient = context.createLinearGradient(0, 0, width, 0);
+                gradient.addColorStop(0, '#0000ff'); // Blue (approaching side)
+                gradient.addColorStop(0.3, '#00ffff'); // Cyan
+                gradient.addColorStop(0.5, '#ffffff'); // White (center)
+                gradient.addColorStop(0.7, '#ffff00'); // Yellow
+                gradient.addColorStop(1, '#ff0000'); // Red (receding side)
+                
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, width, height);
+                
+                // Add some turbulence/noise to the disk
+                const imageData = context.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    if (Math.random() > 0.7) {
+                        data[i] = Math.min(255, data[i] + 50);
+                        data[i+1] = Math.min(255, data[i+1] + 30);
+                        data[i+2] = Math.min(255, data[i+2] + 10);
+                    }
+                }
+                context.putImageData(imageData, 0, 0);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.MeshBasicMaterial({ 
+                    map: texture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                
+                const disk = new THREE.Mesh(geometry, material);
+                disk.rotation.x = Math.PI / 2;
+                return disk;
+            }
+            
+            createCorona() {
+                // Create a hot gas atmosphere around the black hole
+                const radius = this.schwarzschildRadius * 2 / METERS_PER_UNIT;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                
+                const material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        time: { value: 0 }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform float time;
+                        varying vec2 vUv;
+                        
+                        void main() {
+                            vec2 center = vec2(0.5, 0.5);
+                            float dist = distance(vUv, center);
+                            float intensity = 0.2 / dist;
+                            
+                            // Add some turbulence
+                            float turbulence = sin(vUv.x * 20.0 + time) * 0.1 + 
+                                            cos(vUv.y * 15.0 + time) * 0.1;
+                            
+                            // Corona color (yellowish)
+                            vec3 color = vec3(1.0, 0.9, 0.4) * (intensity + turbulence);
+                            
+                            gl_FragColor = vec4(color, 0.3);
+                        }
+                    `,
+                    transparent: true,
+                    side: THREE.BackSide
+                });
+                
+                const corona = new THREE.Mesh(geometry, material);
+                return corona;
+            }
+            
+            updateMass(mass) {
+                this.mass = mass;
+                this.schwarzschildRadius = (2 * G * mass) / c2;
+                this.photonSphereRadius = 1.5 * this.schwarzschildRadius;
+                
+                // Update event horizon
+                const newRadius = this.schwarzschildRadius / METERS_PER_UNIT;
+                this.eventHorizon.geometry.dispose();
+                this.eventHorizon.geometry = new THREE.SphereGeometry(newRadius, 32, 32);
+                
+                // Update photon sphere
+                const newPhotonRadius = this.photonSphereRadius / METERS_PER_UNIT;
+                this.photonSphere.geometry.dispose();
+                this.photonSphere.geometry = new THREE.SphereGeometry(newPhotonRadius, 32, 32);
+                
+                // Update accretion disk
+                const innerRadius = newPhotonRadius;
+                const outerRadius = innerRadius * 5;
+                this.accretionDisk.geometry.dispose();
+                this.accretionDisk.geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+                
+                // Update corona
+                const newCoronaRadius = newRadius * 2;
+                this.corona.geometry.dispose();
+                this.corona.geometry = new THREE.SphereGeometry(newCoronaRadius, 32, 32);
+            }
+            
+            updateSpin(spin) {
+                this.spin = spin;
+                // Spin affects the shape of the event horizon and accretion disk
+                this.accretionDisk.rotation.z += 0.01 * this.spin;
+            }
+            
+            updateCorona(time) {
+                if (this.corona.material.uniforms) {
+                    this.corona.material.uniforms.time.value = time;
+                }
+            }
+            
+            animateSingularity(time) {
+                // Make the singularity pulse
+                const scale = 0.8 + 0.1 * Math.sin(time * 5);
+                this.singularity.scale.set(scale, scale, scale);
+                
+                // Make the glow pulse with a different frequency
+                const glowScale = 1.0 + 0.2 * Math.sin(time * 3);
+                if (this.singularity.children[0]) {
+                    this.singularity.children[0].scale.set(glowScale, glowScale, glowScale);
+                }
+            }
+            
+            getGravitationalAcceleration(position) {
+                const rVec = new THREE.Vector3().subVectors(this.singularity.position, position);
+                const r = rVec.length();
+                
+                if (r < 1e-10) {
+                    return new THREE.Vector3(0, 0, 0);
+                }
+                
+                // Simplified gravitational acceleration (Newtonian approximation)
+                const accelerationMagnitude = (G * this.mass) / (r * r * METERS_PER_UNIT * METERS_PER_UNIT);
+                return rVec.normalize().multiplyScalar(accelerationMagnitude);
+            }
+        }
+
+        // Matter particle manager
+        class MatterManager {
+            constructor(maxParticles = 100) {
+                this.maxParticles = maxParticles;
+                this.particlePool = [];
+                this.activeParticles = [];
+                this.capturedParticles = 0;
+                this.initPool();
+            }
+            
+            initPool() {
+                for (let i = 0; i < this.maxParticles; i++) {
+                    const particle = {
+                        position: new THREE.Vector3(),
+                        velocity: new THREE.Vector3(),
+                        color: this.getRandomMatterColor(),
+                        captured: true,
+                        mesh: this.createParticleMesh(),
+                        trail: null,
+                        trailPoints: []
+                    };
+                    particle.mesh.visible = false;
+                    scene.add(particle.mesh);
+                    this.particlePool.push(particle);
+                }
+            }
+            
+            getRandomMatterColor() {
+                const colors = [0xff3333, 0x33ff33, 0x3333ff, 0xffff33, 0xff33ff, 0x33ffff];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            createParticleMesh() {
+                const size = 0.5 + Math.random() * 1.0;
+                const geometry = new THREE.SphereGeometry(size, 12, 12);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0xff3333,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                return new THREE.Mesh(geometry, material);
+            }
+            
+            createParticle(position, velocity) {
+                // Find an available particle from the pool
+                const particle = this.particlePool.find(p => p.captured);
+                if (!particle) return null;
+                
+                particle.position.copy(position);
+                particle.velocity.copy(velocity);
+                particle.color = this.getRandomMatterColor();
+                particle.captured = false;
+                particle.trailPoints = [position.clone()];
+                particle.mesh.material.color.set(particle.color);
+                particle.mesh.position.copy(particle.position);
+                particle.mesh.visible = true;
+                
+                if (particle.trail) {
+                    scene.remove(particle.trail);
+                    particle.trail.geometry.dispose();
+                    particle.trail.material.dispose();
+                    particle.trail = null;
+                }
+                
+                this.activeParticles.push(particle);
+                return particle;
+            }
+            
+            updateParticles(blackHole, dt) {
+                let capturedCount = 0;
+                
+                for (let i = this.activeParticles.length - 1; i >= 0; i--) {
+                    const particle = this.activeParticles[i];
+                    
+                    if (particle.captured) {
+                        this.activeParticles.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // Check if particle is captured by black hole (inside event horizon)
+                    const distToSingularity = particle.position.distanceTo(blackHole.singularity.position);
+                    const schwarzschildRadius = blackHole.schwarzschildRadius / METERS_PER_UNIT;
+                    
+                    if (distToSingularity < schwarzschildRadius * 0.5) {
+                        particle.captured = true;
+                        particle.mesh.visible = false;
+                        capturedCount++;
+                        this.capturedParticles++;
+                        this.activeParticles.splice(i, 1);
+                        
+                        // Create a small visual effect when matter is captured
+                        this.createCaptureEffect(particle.position);
+                        continue;
+                    }
+                    
+                    // Calculate gravitational acceleration
+                    const acceleration = blackHole.getGravitationalAcceleration(particle.position);
+                    
+                    // Update velocity
+                    particle.velocity.add(acceleration.multiplyScalar(dt));
+                    
+                    // Update position
+                    particle.position.add(particle.velocity.clone().multiplyScalar(dt));
+                    particle.mesh.position.copy(particle.position);
+                    
+                    // Save trail points (limited to improve performance)
+                    if (frameCount % 3 === 0) {
+                        particle.trailPoints.push(particle.position.clone());
+                        const maxTrailLength = 10 + parseInt(document.getElementById('trailSlider').value) / 10;
+                        if (particle.trailPoints.length > maxTrailLength) {
+                            particle.trailPoints.shift();
+                        }
+                    }
+                    
+                    // Draw trail occasionally
+                    if (frameCount % 5 === 0) {
+                        this.drawTrail(particle);
+                    }
+                }
+                
+                return capturedCount;
+            }
+            
+            drawTrail(particle) {
+                if (particle.trailPoints.length < 2) return;
+                
+                // Remove old trail if it exists
+                if (particle.trail) {
+                    scene.remove(particle.trail);
+                    particle.trail.geometry.dispose();
+                    particle.trail.material.dispose();
+                }
+                
+                const points = [];
+                for (const point of particle.trailPoints) {
+                    points.push(point.clone());
+                }
+                
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ 
+                    color: particle.color,
+                    transparent: true,
+                    opacity: 0.6,
+                    linewidth: 1
+                });
+                
+                particle.trail = new THREE.Line(geometry, material);
+                scene.add(particle.trail);
+            }
+            
+            createCaptureEffect(position) {
+                // Create a simple visual effect when matter is captured
+                const geometry = new THREE.SphereGeometry(2, 16, 16);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                
+                const effect = new THREE.Mesh(geometry, material);
+                effect.position.copy(position);
+                scene.add(effect);
+                
+                // Animate and remove the effect
+                let scale = 1;
+                const animateEffect = () => {
+                    scale += 0.2;
+                    effect.scale.set(scale, scale, scale);
+                    effect.material.opacity -= 0.05;
+                    
+                    if (effect.material.opacity <= 0) {
+                        scene.remove(effect);
+                        effect.geometry.dispose();
+                        effect.material.dispose();
+                        return;
+                    }
+                    
+                    requestAnimationFrame(animateEffect);
+                };
+                
+                animateEffect();
+            }
+            
+            addMatter(blackHole, count = 10, random = false) {
+                const velocityFactor = parseInt(document.getElementById('velocitySlider').value) / 50;
+                
+                for (let i = 0; i < count; i++) {
+                    let position, velocity;
+                    
+                    if (random) {
+                        // Create matter at random positions around the black hole
+                        const distance = 50 + Math.random() * 100;
+                        const angle = Math.random() * Math.PI * 2;
+                        
+                        position = new THREE.Vector3(
+                            Math.cos(angle) * distance,
+                            (Math.random() - 0.5) * 50,
+                            Math.sin(angle) * distance
+                        );
+                        
+                        // Give it a velocity that will make it orbit (with some randomness)
+                        const orbitDirection = new THREE.Vector3(-position.z, 0, position.x).normalize();
+                        const randomFactor = 0.7 + Math.random() * 0.6;
+                        velocity = orbitDirection.multiplyScalar(15 * randomFactor * velocityFactor);
+                    } else {
+                        // Create matter at a fixed position (for cursor placement)
+                        position = new THREE.Vector3(
+                            (Math.random() - 0.5) * 20,
+                            50,
+                            (Math.random() - 0.5) * 20
+                        );
+                        
+                        // Give it a velocity toward the black hole
+                        const direction = new THREE.Vector3().subVectors(
+                            blackHole.singularity.position, position
+                        ).normalize();
+                        
+                        velocity = direction.multiplyScalar(10 * velocityFactor);
+                    }
+                    
+                    this.createParticle(position, velocity);
+                }
+            }
+            
+            reset() {
+                for (const particle of this.activeParticles) {
+                    particle.captured = true;
+                    particle.mesh.visible = false;
+                    
+                    if (particle.trail) {
+                        scene.remove(particle.trail);
+                        particle.trail.geometry.dispose();
+                        particle.trail.material.dispose();
+                        particle.trail = null;
+                    }
+                }
+                
+                this.activeParticles = [];
+                this.capturedParticles = 0;
+            }
+            
+            getActiveParticleCount() {
+                return this.activeParticles.length;
+            }
+        }
+
+        // Simulation class
+        class Simulation {
+            constructor() {
+                this.blackHole = new BlackHole(30 * SOLAR_MASS, 0.5);
+                this.matterManager = new MatterManager(100);
+                this.lastTime = performance.now();
+                
+                this.setupEventListeners();
+                this.animate();
+            }
+            
+            setupEventListeners() {
+                // Mass slider
+                document.getElementById('massSlider').addEventListener('input', (e) => {
+                    const mass = parseInt(e.target.value);
+                    this.blackHole.updateMass(mass * SOLAR_MASS);
+                    document.getElementById('massValue').textContent = `${mass} Solar Masses`;
+                    document.getElementById('schwarzschildRadius').textContent = 
+                        `${(this.blackHole.schwarzschildRadius / 1000).toFixed(2)} km`;
+                });
+                
+                // Spin slider
+                document.getElementById('spinSlider').addEventListener('input', (e) => {
+                    const spin = parseInt(e.target.value) / 100;
+                    this.blackHole.updateSpin(spin);
+                    document.getElementById('spinValue').textContent = `${spin.toFixed(2)} c`;
+                });
+                
+                // Accretion disk slider
+                document.getElementById('accretionSlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    this.blackHole.accretionDisk.material.opacity = value / 100;
+                    document.getElementById('accretionValue').textContent = `${value}%`;
+                });
+                
+                // Matter density slider
+                document.getElementById('matterSlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('matterValue').textContent = `${value}%`;
+                });
+                
+                // Velocity slider
+                document.getElementById('velocitySlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('velocityValue').textContent = `${value}%`;
+                });
+                
+                // Trail slider
+                document.getElementById('trailSlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('trailValue').textContent = `${value}%`;
+                });
+                
+                // Quality slider
+                document.getElementById('qualitySlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('qualityValue').textContent = `${value}%`;
+                    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio * value / 100));
+                });
+                
+                // Add matter button
+                document.getElementById('addMatterBtn').addEventListener('click', () => {
+                    const density = parseInt(document.getElementById('matterSlider').value);
+                    const count = Math.floor(density / 10);
+                    this.matterManager.addMatter(this.blackHole, count, false);
+                });
+                
+                // Add random matter button
+                document.getElementById('addRandomBtn').addEventListener('click', () => {
+                    const density = parseInt(document.getElementById('matterSlider').value);
+                    const count = Math.floor(density / 10);
+                    this.matterManager.addMatter(this.blackHole, count, true);
+                });
+                
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.matterManager.reset();
+                    document.getElementById('matterParticles').textContent = '0';
+                    document.getElementById('matterCaptured').textContent = '0';
+                });
+                
+                // Screenshot button
+                document.getElementById('screenshotBtn').addEventListener('click', () => {
+                    renderer.domElement.toBlob(function(blob) {
+                        const a = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        a.href = url;
+                        a.download = 'blackhole-screenshot.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                });
+                
+                // Click to create matter
+                renderer.domElement.addEventListener('click', (e) => {
+                    // Calculate mouse position in 3D space
+                    const mouse = new THREE.Vector2();
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    // Create matter at the intersection point
+                    const intersects = raycaster.intersectObjects([this.blackHole.accretionDisk]);
+                    if (intersects.length > 0) {
+                        const position = intersects[0].point;
+                        const density = parseInt(document.getElementById('matterSlider').value);
+                        const count = Math.max(1, Math.floor(density / 20));
+                        this.matterManager.addMatter(this.blackHole, count, false);
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const currentTime = performance.now();
+                const dt = Math.min(0.1, (currentTime - this.lastTime) / 1000);
+                this.lastTime = currentTime;
+                
+                // Update frame counter for performance optimizations
+                frameCount++;
+                
+                // Update FPS counter every second
+                if (currentTime - lastFpsUpdate > 1000) {
+                    fps = Math.round(frameCount * 1000 / (currentTime - lastFpsUpdate));
+                    document.getElementById('performance').textContent = `${fps} FPS`;
+                    document.getElementById('matterParticles').textContent = this.matterManager.getActiveParticleCount();
+                    document.getElementById('matterCaptured').textContent = this.matterManager.capturedParticles;
+                    frameCount = 0;
+                    lastFpsUpdate = currentTime;
+                }
+                
+                // Rotate accretion disk
+                this.blackHole.accretionDisk.rotation.z += 0.01 * this.blackHole.spin;
+                
+                // Animate singularity
+                this.blackHole.animateSingularity(currentTime / 1000);
+                
+                // Update corona
+                this.blackHole.updateCorona(currentTime / 1000);
+                
+                // Update matter particles
+                this.matterManager.updateParticles(this.blackHole, dt);
+                
+                // Update controls
+                controls.update();
+                
+                // Render scene
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Initialize simulation
+        const simulation = new Simulation();
+    </script>
+</body>
+</html>

@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Black Hole Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            z-index: 100;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #4fa3ff;
+            text-align: center;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4fa3ff;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .value-display {
+            color: #fff;
+            font-size: 14px;
+            text-align: right;
+        }
+        
+        button {
+            padding: 8px 15px;
+            background: #2a6bc1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #4fa3ff;
+        }
+        
+        .info-panel {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 300px;
+        }
+        
+        .highlight {
+            color: #4fa3ff;
+            font-weight: bold;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="ui-container">
+        <h1>Advanced Black Hole Simulation</h1>
+        
+        <div class="control-group">
+            <label for="massSlider">Black Hole Mass</label>
+            <input type="range" id="massSlider" min="5" max="100" value="30">
+            <div class="value-display" id="massValue">30 Solar Masses</div>
+        </div>
+        
+        <div class="control-group">
+            <label for="accretionSlider">Accretion Disk Size</label>
+            <input type="range" id="accretionSlider" min="1" max="100" value="50">
+            <div class="value-display" id="accretionValue">50%</div>
+        </div>
+        
+        <div class="checkbox-group">
+            <input type="checkbox" id="gravityToggle" checked>
+            <label for="gravityToggle">Enable Gravity</label>
+        </div>
+        
+        <div class="control-group">
+            <button id="addLightBtn">Add Light Source</button>
+            <button id="addStarBtn">Add Star</button>
+            <button id="resetBtn">Reset Simulation</button>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-item">
+                <span>Schwarzschild Radius:</span>
+                <span class="info-value" id="schwarzschildRadius">0 km</span>
+            </div>
+            <div class="info-item">
+                <span>Photons Captured:</span>
+                <span class="info-value" id="photonsCaptured">0</span>
+            </div>
+            <div class="info-item">
+                <span>Light Sources:</span>
+                <span class="info-value" id="lightSources">0</span>
+            </div>
+            <div class="info-item">
+                <span>Celestial Bodies:</span>
+                <span class="info-value" id="celestialBodies">1</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="instructions">
+        <p>• <span class="highlight">Click</span> to create photons</p>
+        <p>• <span class="highlight">Drag</span> to rotate the view</p>
+        <p>• <span class="highlight">Scroll</span> to zoom in/out</p>
+        <p>• Use controls to adjust parameters</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    
+    <script>
+        // Constants
+        const G = 6.67430e-11;  // Gravitational constant
+        const c = 299792458.0;   // Speed of light
+        const c2 = c * c;        // c squared
+        const SOLAR_MASS = 1.989e30;
+        const METERS_PER_UNIT = 1e9; // 1 unit = 1,000,000 km
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Add stars background
+        const starGeometry = new THREE.BufferGeometry();
+        const starVertices = [];
+        for (let i = 0; i < 10000; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            starVertices.push(x, y, z);
+        }
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // Camera position
+        camera.position.z = 50;
+        camera.position.y = 30;
+
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Warped spacetime grid
+        let grid = null;
+        function createWarpedGrid(blackHole, size = 50, spacing = 10) {
+            if (grid) scene.remove(grid);
+            
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const indices = [];
+            
+            // Create grid vertices with spacetime warping
+            for (let i = 0; i <= size; i++) {
+                for (let j = 0; j <= size; j++) {
+                    const x = (i - size/2) * spacing;
+                    const z = (j - size/2) * spacing;
+                    
+                    // Calculate warped y position based on Schwarzschild metric
+                    const dx = x - blackHole.mesh.position.x;
+                    const dz = z - blackHole.mesh.position.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz) * METERS_PER_UNIT;
+                    
+                    let y = 0;
+                    if (dist > blackHole.schwarzschildRadius) {
+                        // Warp spacetime outside event horizon
+                        y = 2 * Math.sqrt(blackHole.schwarzschildRadius * (dist - blackHole.schwarzschildRadius));
+                        y = y / METERS_PER_UNIT - 3; // Convert back to simulation units
+                    } else {
+                        // Inside event horizon - create a steep drop
+                        y = -10;
+                    }
+                    
+                    vertices.push(x, y, z);
+                }
+            }
+            
+            // Create grid indices
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const a = i * (size + 1) + j;
+                    const b = a + 1;
+                    const c = a + (size + 1);
+                    const d = c + 1;
+                    
+                    indices.push(a, b, a, c);
+                }
+            }
+            
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setIndex(indices);
+            
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0x4444aa, 
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            grid = new THREE.LineSegments(geometry, material);
+            scene.add(grid);
+        }
+
+        // Black hole class
+        class BlackHole {
+            constructor(mass) {
+                this.mass = mass;
+                this.schwarzschildRadius = (2 * G * mass) / c2;
+                this.mesh = this.createMesh();
+                this.accretionDisk = this.createAccretionDisk();
+                this.eventHorizon = this.createEventHorizon();
+                
+                scene.add(this.mesh);
+                scene.add(this.accretionDisk);
+                scene.add(this.eventHorizon);
+            }
+            
+            createMesh() {
+                const geometry = new THREE.SphereGeometry(1, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const mesh = new THREE.Mesh(geometry, material);
+                return mesh;
+            }
+            
+            createEventHorizon() {
+                const radius = this.schwarzschildRadius / METERS_PER_UNIT;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                return mesh;
+            }
+            
+            createAccretionDisk() {
+                const innerRadius = this.schwarzschildRadius / METERS_PER_UNIT;
+                const outerRadius = innerRadius * 3;
+                const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+                
+                // Create a gradient texture for the accretion disk
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 1;
+                const context = canvas.getContext('2d');
+                
+                const gradient = context.createLinearGradient(0, 0, 256, 0);
+                gradient.addColorStop(0, '#ff0000');
+                gradient.addColorStop(0.5, '#ffff00');
+                gradient.addColorStop(1, '#ffffff');
+                
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, 256, 1);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.MeshBasicMaterial({ 
+                    map: texture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const disk = new THREE.Mesh(geometry, material);
+                disk.rotation.x = Math.PI / 2;
+                return disk;
+            }
+            
+            updateMass(mass) {
+                this.mass = mass;
+                this.schwarzschildRadius = (2 * G * mass) / c2;
+                
+                // Update event horizon
+                const newRadius = this.schwarzschildRadius / METERS_PER_UNIT;
+                const newGeometry = new THREE.SphereGeometry(newRadius, 32, 32);
+                this.eventHorizon.geometry.dispose();
+                this.eventHorizon.geometry = newGeometry;
+                
+                // Update accretion disk
+                const innerRadius = newRadius;
+                const outerRadius = innerRadius * 3;
+                const newDiskGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+                this.accretionDisk.geometry.dispose();
+                this.accretionDisk.geometry = newDiskGeometry;
+                
+                // Update warped grid
+                createWarpedGrid(this);
+            }
+            
+            getGravitationalAcceleration(position) {
+                const rVec = new THREE.Vector3().subVectors(this.mesh.position, position);
+                const r = rVec.length();
+                
+                if (r < 1e-10) {
+                    return new THREE.Vector3(0, 0, 0);
+                }
+                
+                const accelerationMagnitude = (G * this.mass) / (r * r * METERS_PER_UNIT * METERS_PER_UNIT);
+                return rVec.normalize().multiplyScalar(accelerationMagnitude);
+            }
+            
+            // Calculate deflection using Schwarzschild geodesic equation
+            calculateDeflection(photon) {
+                const rVec = new THREE.Vector3().subVectors(photon.position, this.mesh.position);
+                const r = rVec.length() * METERS_PER_UNIT;
+                
+                if (r <= this.schwarzschildRadius) {
+                    return new THREE.Vector3(0, 0, 0); // Inside event horizon
+                }
+                
+                // Schwarzschild deflection formula
+                const deflection = 4 * G * this.mass / (c2 * r);
+                const direction = rVec.normalize();
+                
+                // Apply deflection perpendicular to the direction vector
+                const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
+                return perpendicular.multiplyScalar(deflection);
+            }
+        }
+
+        // Celestial body class (stars, planets)
+        class CelestialBody {
+            constructor(position, mass, radius, color = 0xffffff) {
+                this.position = position;
+                this.mass = mass;
+                this.radius = radius;
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.color = color;
+                
+                this.mesh = this.createMesh();
+                scene.add(this.mesh);
+            }
+            
+            createMesh() {
+                const geometry = new THREE.SphereGeometry(this.radius / METERS_PER_UNIT, 16, 16);
+                const material = new THREE.MeshBasicMaterial({ color: this.color });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.copy(this.position);
+                return mesh;
+            }
+            
+            update(blackHole, dt, gravityEnabled) {
+                if (gravityEnabled) {
+                    // Calculate gravitational acceleration
+                    const rVec = new THREE.Vector3().subVectors(blackHole.mesh.position, this.position);
+                    const r = rVec.length() * METERS_PER_UNIT;
+                    
+                    if (r > blackHole.schwarzschildRadius) {
+                        const accelerationMagnitude = (G * blackHole.mass) / (r * r);
+                        const acceleration = rVec.normalize().multiplyScalar(accelerationMagnitude / METERS_PER_UNIT);
+                        
+                        // Update velocity (Euler integration)
+                        this.velocity.add(acceleration.multiplyScalar(dt));
+                        
+                        // Update position
+                        this.position.add(this.velocity.clone().multiplyScalar(dt));
+                        this.mesh.position.copy(this.position);
+                    }
+                }
+            }
+            
+            dispose() {
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose();
+                this.mesh.material.dispose();
+            }
+        }
+
+        // Photon class for light simulation
+        class Photon {
+            constructor(position, velocity, color = 0x4fa3ff) {
+                this.position = position;
+                this.velocity = velocity;
+                this.color = color;
+                this.captured = false;
+                this.history = [];
+                this.maxHistoryLength = 50;
+                
+                this.mesh = this.createMesh();
+                scene.add(this.mesh);
+            }
+            
+            createMesh() {
+                const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+                const material = new THREE.MeshBasicMaterial({ color: this.color });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.copy(this.position);
+                return mesh;
+            }
+            
+            update(blackHole, dt) {
+                if (this.captured) return;
+                
+                // Save history for trail
+                this.history.push(this.position.clone());
+                if (this.history.length > this.maxHistoryLength) {
+                    this.history.shift();
+                }
+                
+                // Check if photon is captured by black hole
+                const distToBlackHole = this.position.distanceTo(blackHole.mesh.position);
+                const schwarzschildRadius = blackHole.schwarzschildRadius / METERS_PER_UNIT;
+                
+                if (distToBlackHole < schwarzschildRadius) {
+                    this.captured = true;
+                    this.mesh.visible = false;
+                    return;
+                }
+                
+                // Calculate gravitational deflection using Schwarzschild geodesic
+                const deflection = blackHole.calculateDeflection(this);
+                
+                // Update velocity with deflection
+                this.velocity.add(deflection.multiplyScalar(dt));
+                
+                // Normalize to speed of light (in simulation units)
+                const cUnits = c / METERS_PER_UNIT;
+                const vLen = this.velocity.length();
+                if (vLen > 0) {
+                    this.velocity.normalize().multiplyScalar(cUnits);
+                }
+                
+                // Update position
+                this.position.add(this.velocity.clone().multiplyScalar(dt));
+                this.mesh.position.copy(this.position);
+                
+                // Draw trail
+                this.drawTrail();
+            }
+            
+            drawTrail() {
+                if (this.history.length < 2) return;
+                
+                // Remove old trail if it exists
+                if (this.trail) {
+                    scene.remove(this.trail);
+                }
+                
+                const points = [];
+                for (const point of this.history) {
+                    points.push(point.clone());
+                }
+                
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ 
+                    color: this.color,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                this.trail = new THREE.Line(geometry, material);
+                scene.add(this.trail);
+            }
+            
+            dispose() {
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose();
+                this.mesh.material.dispose();
+                
+                if (this.trail) {
+                    scene.remove(this.trail);
+                    this.trail.geometry.dispose();
+                    this.trail.material.dispose();
+                }
+            }
+        }
+
+        // Light source class
+        class LightSource {
+            constructor(position, direction, spread = Math.PI / 4, rate = 5) {
+                this.position = position;
+                this.direction = direction.normalize();
+                this.spread = spread;
+                this.rate = rate;
+                this.active = true;
+                
+                this.mesh = this.createMesh();
+                scene.add(this.mesh);
+            }
+            
+            createMesh() {
+                const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+                const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.copy(this.position);
+                return mesh;
+            }
+            
+            emit(blackHole, photons) {
+                if (!this.active) return;
+                
+                for (let i = 0; i < this.rate; i++) {
+                    // Calculate random direction within spread
+                    const angle = Math.random() * this.spread * 2 - this.spread;
+                    const axis = new THREE.Vector3(
+                        Math.random() - 0.5,
+                        Math.random() - 0.5,
+                        Math.random() - 0.5
+                    ).normalize();
+                    
+                    const direction = this.direction.clone().applyAxisAngle(axis, angle);
+                    const cUnits = c / METERS_PER_UNIT;
+                    const velocity = direction.multiplyScalar(cUnits);
+                    
+                    photons.push(new Photon(this.position.clone(), velocity));
+                }
+            }
+            
+            dispose() {
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose();
+                this.mesh.material.dispose();
+            }
+        }
+
+        // Simulation class
+        class Simulation {
+            constructor() {
+                this.blackHole = new BlackHole(30 * SOLAR_MASS);
+                this.photons = [];
+                this.lightSources = [];
+                this.celestialBodies = [];
+                this.photonCounter = 0;
+                this.lastTime = performance.now();
+                this.gravityEnabled = true;
+                
+                // Create warped grid
+                createWarpedGrid(this.blackHole);
+                
+                this.setupEventListeners();
+                this.animate();
+            }
+            
+            setupEventListeners() {
+                // Mass slider
+                document.getElementById('massSlider').addEventListener('input', (e) => {
+                    const mass = parseInt(e.target.value);
+                    this.blackHole.updateMass(mass * SOLAR_MASS);
+                    document.getElementById('massValue').textContent = `${mass} Solar Masses`;
+                    document.getElementById('schwarzschildRadius').textContent = 
+                        `${(this.blackHole.schwarzschildRadius / 1000).toFixed(2)} km`;
+                });
+                
+                // Accretion disk slider
+                document.getElementById('accretionSlider').addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value);
+                    document.getElementById('accretionValue').textContent = `${value}%`;
+                    // In a more advanced implementation, this would adjust the disk size
+                });
+                
+                // Gravity toggle
+                document.getElementById('gravityToggle').addEventListener('change', (e) => {
+                    this.gravityEnabled = e.target.checked;
+                });
+                
+                // Add light source button
+                document.getElementById('addLightBtn').addEventListener('click', () => {
+                    const position = new THREE.Vector3(
+                        (Math.random() - 0.5) * 100,
+                        (Math.random() - 0.5) * 100,
+                        (Math.random() - 0.5) * 100
+                    );
+                    
+                    // Point toward black hole
+                    const direction = new THREE.Vector3().subVectors(
+                        this.blackHole.mesh.position, position
+                    ).normalize();
+                    
+                    this.lightSources.push(new LightSource(position, direction));
+                    document.getElementById('lightSources').textContent = this.lightSources.length;
+                });
+                
+                // Add star button
+                document.getElementById('addStarBtn').addEventListener('click', () => {
+                    const position = new THREE.Vector3(
+                        (Math.random() - 0.5) * 200 + 150,
+                        0,
+                        (Math.random() - 0.5) * 200
+                    );
+                    
+                    const mass = SOLAR_MASS * (0.5 + Math.random() * 2);
+                    const radius = 6.96e8 * (0.5 + Math.random()); // Star radius in meters
+                    
+                    // Give it some initial tangential velocity
+                    const star = new CelestialBody(position, mass, radius, 0xffff00);
+                    const tangent = new THREE.Vector3(-position.z, 0, position.x).normalize();
+                    star.velocity = tangent.multiplyScalar(2e4 / METERS_PER_UNIT);
+                    
+                    this.celestialBodies.push(star);
+                    document.getElementById('celestialBodies').textContent = this.celestialBodies.length + 1; // +1 for black hole
+                });
+                
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    // Remove all photons
+                    for (const photon of this.photons) {
+                        photon.dispose();
+                    }
+                    this.photons = [];
+                    this.photonCounter = 0;
+                    
+                    // Remove all light sources
+                    for (const lightSource of this.lightSources) {
+                        lightSource.dispose();
+                    }
+                    this.lightSources = [];
+                    
+                    // Remove all celestial bodies except black hole
+                    for (const body of this.celestialBodies) {
+                        body.dispose();
+                    }
+                    this.celestialBodies = [];
+                    
+                    // Reset UI
+                    document.getElementById('photonsCaptured').textContent = '0';
+                    document.getElementById('lightSources').textContent = '0';
+                    document.getElementById('celestialBodies').textContent = '1';
+                });
+                
+                // Click to create photons
+                renderer.domElement.addEventListener('click', (e) => {
+                    // Calculate mouse position in 3D space
+                    const mouse = new THREE.Vector2();
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    // Create photons from camera position toward mouse direction
+                    const position = camera.position.clone();
+                    const direction = raycaster.ray.direction.clone();
+                    const cUnits = c / METERS_PER_UNIT;
+                    const velocity = direction.multiplyScalar(cUnits);
+                    
+                    for (let i = 0; i < 5; i++) {
+                        // Add some randomness to direction
+                        const randomDir = direction.clone().add(
+                            new THREE.Vector3(
+                                (Math.random() - 0.5) * 0.2,
+                                (Math.random() - 0.5) * 0.2,
+                                (Math.random() - 0.5) * 0.2
+                            )
+                        ).normalize();
+                        
+                        this.photons.push(new Photon(
+                            position.clone(),
+                            randomDir.multiplyScalar(cUnits)
+                        ));
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const currentTime = performance.now();
+                const dt = (currentTime - this.lastTime) / 1000; // Convert to seconds
+                this.lastTime = currentTime;
+                
+                // Rotate accretion disk
+                this.blackHole.accretionDisk.rotation.z += 0.2 * dt;
+                
+                // Emit photons from light sources
+                for (const lightSource of this.lightSources) {
+                    lightSource.emit(this.blackHole, this.photons);
+                }
+                
+                // Update celestial bodies
+                for (const body of this.celestialBodies) {
+                    body.update(this.blackHole, dt, this.gravityEnabled);
+                }
+                
+                // Update photons
+                let capturedCount = 0;
+                for (let i = this.photons.length - 1; i >= 0; i--) {
+                    const photon = this.photons[i];
+                    photon.update(this.blackHole, dt);
+                    
+                    if (photon.captured) {
+                        capturedCount++;
+                        photon.dispose();
+                        this.photons.splice(i, 1);
+                    }
+                }
+                
+                // Update photon counter
+                this.photonCounter += capturedCount;
+                document.getElementById('photonsCaptured').textContent = this.photonCounter;
+                
+                // Update controls
+                controls.update();
+                
+                // Render scene
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Initialize simulation
+        const simulation = new Simulation();
+        
+        // Initialize UI values
+        document.getElementById('schwarzschildRadius').textContent = 
+            `${(simulation.blackHole.schwarzschildRadius / 1000).toFixed(2)} km`;
+    </script>
+</body>
+</html>
