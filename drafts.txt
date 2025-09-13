@@ -1,0 +1,84 @@
+AI-Enhanced Intrusion-Resistant Encryption for IoT Applications
+
+Problem
+
+IoT devices are highly vulnerable to cyberattacks such as replay, 
+brute-force, and packet injection because they rely on static encryption methods 
+that do not adapt to real-time threats. Traditional cryptographic algorithms are either 
+too heavy for resource-constrained devices or fail to adjust once compromised, 
+leaving systems exposed.
+
+
+Description
+
+This study proposes the development of an AI-enhanced encryption 
+framework for IoT devices that combines machine learning–based anomaly 
+detection with dynamic encryption adjustment. The system will automatically 
+modify its encryption parameters (e.g., key size, algorithm switching, or session renewal) 
+when intrusion attempts are detected, thereby strengthening resistance against evolving 
+threats while remaining lightweight enough for IoT hardware.
+
+
+Objective
+
+To design and implement an intrusion-resistant encryption system for IoT applications that:
+Detects abnormal network behavior using machine learning.
+Dynamically adapts encryption schemes in response to detected threats.
+Improves the overall security of IoT communications without exceeding device resource limitations.
+
+
+Proposed Materials (subject to change)
+
+🛠️ Materials Needed
+1. Hardware
+
+
+IoT Devices (3–5 nodes):
+
+🟢 ESP32 Development Boards (recommended) → built-in Wi-Fi & decent processing power.
+Alternative: STM32 Nucleo boards or Raspberry Pi Pico W (if you want more control).
+Server/Coordinator Device:
+Raspberry Pi 4 (as a local broker + anomaly detection runner) OR a laptop/desktop running the AI model.
+Networking Components:
+Wi-Fi Router or Access Point (to interconnect IoT nodes).
+Optional: Ethernet cables + switch if you want wired testing.
+Power Supply:
+USB cables & adapters for ESP32 nodes.
+Power bank (if mobile testing is needed).
+Testing Equipment (Optional but useful):
+Logic analyzer or Wireshark-compatible laptop → for monitoring traffic & simulating attacks.
+
+2. Software & Tools
+Your system will be both IoT firmware + AI/Server-side processing.
+IoT Firmware (Device-Side):
+Arduino IDE / PlatformIO (for ESP32 firmware).
+C/C++ (for lightweight encryption and MQTT communication).
+Server-Side (AI + Encryption Manager):
+Python 3.x
+TensorFlow / PyTorch (for anomaly detection ML model).
+Scikit-learn (training/testing intrusion detection models).
+MQTT Broker (e.g., Eclipse Mosquitto) → message passing between IoT nodes & server.
+
+Cryptographic Libraries:
+TinyAES (C for embedded side).
+PyCryptodome (Python for server side).
+Attack Simulation & Testing Tools:
+Wireshark (packet sniffing & replay attack simulation). (tested on linux)
+Scapy (Python library for simulating packet injection).
+
+3. Datasets (for AI training)
+To train the anomaly detection system, you need network intrusion datasets:
+NSL-KDD Dataset → classical benchmark for intrusion detection.
+CICIDS2017 / CICIDS2018 → modern dataset with IoT-relevant attacks (DoS, brute force, injection).
+Custom Captured Traffic → logs from your own ESP32 test setup (normal + attack scenarios).
+
+
+
+
+Summary
+
+3–5 ESP32 boards (IoT devices).
+1 laptop or Raspberry Pi 4 (server + anomaly detection).
+Wi-Fi router/AP for communication.
+Arduino IDE + Python (PyTorch/TensorFlow, Mosquitto, Wireshark).
+NSL-KDD or CICIDS2017 dataset for anomaly detection training.
